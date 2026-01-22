@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental Receipt</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Screen View Styling */
+        #receipt-capture-area {
+            display: flex;
+            justify-content: center;
+            background: #fff;
+            padding: 10mm;
+            gap: 2mm; /* Tiny gap for the cut line */
+            width: fit-content;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+        }
+
+        .receipt-card {
+            background: white;
+            padding: 15px;
+            border: 2px solid #000;
+            /* Optimized for A4 Portrait Side-by-Side */
+            width: 120mm; 
+            height: 90mm; 
+            position: relative;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            font-size: 11px;
+        }
+
+        .copy-label {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-weight: bold;
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .receipt-header {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 900;
+            margin-bottom: 2px;
+            text-decoration: underline;
+        }
+
+        .landlord-info { 
+            text-align: center; 
+            margin-bottom: 10px; 
+            line-height: 1.1; 
+            font-size: 10px;
+        }
+
+        .meta-section {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 5px 0;
+            margin-bottom: 10px;
+        }
+
+        .meta-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+
+        .item-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 5px; 
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .total-box { 
+            border: 1.5px solid #000;
+            padding: 8px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .note-box { 
+            margin-top: 10px; 
+            font-size: 10px; 
+            font-style: italic; 
+            min-height: 20px;
+            line-height: 1.2;
+        }
+
+        .footer-area {
+            margin-top: auto;
+            text-align: right;
+            padding-top: 0px;
+        }
+
+        .sig-line { 
+            border-top: 1px solid #000; 
+            width: 120px; 
+            display: inline-block; 
+            text-align: center;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        /* Print Logic */
+        @media print {
+            @page { size: A4 portrait; margin: 5mm; }
+            .no-print { display: none !important; }
+            body { background: white; padding: 0; }
+            #receipt-capture-area { 
+                border: none !important; 
+                padding: 0 !important; 
+                gap: 0 !important;
+                display: flex !important;
+                flex-direction: row !important;
+            }
+            .receipt-card { 
+                border: 1px solid #000 !important;
+                float: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4 no-print">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <div class="card shadow border-0">
+                    <div class="card-body">
+                        <h5 class="mb-3 fw-bold">Receipt Generator</h5>
+                        
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small">Month</label>
+                                <select class="form-select form-select-sm" id="month">
+                                    <option>January</option><option>February</option><option>March</option>
+                                    <option>April</option><option>May</option><option>June</option>
+                                    <option>July</option><option>August</option><option>September</option>
+                                    <option>October</option><option>November</option><option>December</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Receipt Date</label>
+                                <input type="date" class="form-control form-control-sm" id="receiptDate">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-4"><label class="small">Rent</label><input type="number" class="form-control form-control-sm" id="rent" value="19000"></div>
+                            <div class="col-4"><label class="small">Service</label><input type="number" class="form-control form-control-sm" id="serviceCharge" value="5000"></div>
+                            <div class="col-4"><label class="small">Extra</label><input type="number" class="form-control form-control-sm" id="extraCharge" value="0"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small">Note</label>
+                            <textarea class="form-control form-control-sm" id="note" rows="2">Please pay the rent by or before the 19th of the month.</textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm w-100" id="generateBtn">Preview</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="receipt-display" class="d-none">
+        <div class="text-center mb-4 no-print">
+            <button class="btn btn-success btn-sm me-2" id="downloadBtn">Download PNG</button>
+            <button class="btn btn-dark btn-sm" onclick="window.print()">Print)</button>
+        </div>
+
+        <div id="receipt-capture-area">
+            <div class="receipt-card">
+                <span class="copy-label">Tenant Copy</span>
+                <div class="receipt-header">MONEY RECEIPT</div>
+                <div class="landlord-info">
+                    <strong>MD Bazlur Rahman</strong><br>
+                    1296 East Monipur, Mirpur, Dhaka-1216
+                </div>
+                
+                <div class="meta-section">
+                    <div class="meta-row"><span>Date:</span> <span class="val-date"></span></div>
+                    <div class="meta-row"><span>Month:</span> <span><span class="val-month"></span> 2025</span></div>
+                </div>
+
+                <div class="item-row"><span>Tenant Name:</span> <strong>Mr Ferdous</strong></div>
+                <div class="item-row"><span>House Rent:</span> <span>৳<span class="val-rent"></span></span></div>
+                <div class="item-row"><span>Service Charge:</span> <span>৳<span class="val-service"></span></span></div>
+                <div class="item-row"><span>Extra Charge:</span> <span>৳<span class="val-extra"></span></span></div>
+
+                <div class="total-box">
+                    <span>Total Paid:</span>
+                    <span>৳<span class="val-total"></span></span>
+                </div>
+
+                <div class="note-box">
+                    <strong>Note:</strong> <span class="val-note"></span>
+                </div>
+
+                <div class="footer-area">
+                    <div style="font-weight: bold; font-family: cursive; margin-bottom: 0px; margin-right: 12%;">Shovon</div>
+                    <div class="sig-line">Landlord's Signature</div>
+                </div>
+            </div>
+
+            <div class="receipt-card">
+                <span class="copy-label">Owner Copy</span>
+                <div class="receipt-header">MONEY RECEIPT</div>
+                <div class="landlord-info">
+                    <strong>MD Bazlur Rahman</strong><br>
+                    1296 East Monipur, Mirpur, Dhaka-1216
+                </div>
+                
+                <div class="meta-section">
+                    <div class="meta-row"><span>Date:</span> <span class="val-date"></span></div>
+                    <div class="meta-row"><span>Month:</span> <span><span class="val-month"></span> 2025</span></div>
+                </div>
+
+                <div class="item-row"><span>Tenant Name:</span> <strong>Mr Ferdous</strong></div>
+                <div class="item-row"><span>House Rent:</span> <span>৳<span class="val-rent"></span></span></div>
+                <div class="item-row"><span>Service Charge:</span> <span>৳<span class="val-service"></span></span></div>
+                <div class="item-row"><span>Extra Charge:</span> <span>৳<span class="val-extra"></span></span></div>
+
+                <div class="total-box">
+                    <span>Total Paid:</span>
+                    <span>৳<span class="val-total"></span></span>
+                </div>
+
+                <div class="note-box">
+                    <strong>Note:</strong> <span class="val-note"></span>
+                </div>
+
+                <div class="footer-area">
+                    <div style="font-weight: bold; font-family: cursive; margin-bottom: 0px; margin-right: 12%;">Shovon</div>
+                    <div class="sig-line">Landlord's Signature</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Set default date to today
+            const now = new Date();
+            const day = ("0" + now.getDate()).slice(-2);
+            const monthDay = ("0" + (now.getMonth() + 1)).slice(-2);
+            const today = now.getFullYear() + "-" + monthDay + "-" + day;
+            $("#receiptDate").val(today);
+
+            $("#generateBtn").click(function () {
+                const month = $("#month").val();
+                const rent = parseFloat($("#rent").val()) || 0;
+                const service = parseFloat($("#serviceCharge").val()) || 0;
+                const extra = parseFloat($("#extraCharge").val()) || 0;
+                const total = rent + service + extra;
+                const note = $("#note").val();
+                
+                // Get and format the selected date
+                const selectedDate = new Date($("#receiptDate").val());
+                const formattedDate = selectedDate.toLocaleDateString('en-GB'); // Formats as DD/MM/YYYY
+
+                $(".val-month").text(month);
+                $(".val-rent").text(rent.toLocaleString('en-IN'));
+                $(".val-service").text(service.toLocaleString('en-IN'));
+                $(".val-extra").text(extra.toLocaleString('en-IN'));
+                $(".val-total").text(total.toLocaleString('en-IN'));
+                $(".val-note").text(note);
+                $(".val-date").text(formattedDate);
+
+                $("#receipt-display").removeClass("d-none");
+            });
+
+            $("#downloadBtn").click(function () {
+                html2canvas(document.querySelector("#receipt-capture-area"), { scale: 3 }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `Receipt_${$("#month").val()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
